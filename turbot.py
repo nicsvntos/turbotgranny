@@ -1,9 +1,7 @@
 import tweepy #twitter library
-import os
 import typer #CLI
-import random #for random selection of messages
-import time #for sleep function
 from dotenv import load_dotenv #for loading the .env file
+import os, random, time, datetime
 
 load_dotenv()
 
@@ -45,19 +43,15 @@ def save_message(messages, filename='tweets.txt'):
 
 
 def post_tweet(message):
-    """Posts the message to twitter along with handling rate limits
-    Args:
-        message (_type_)
+    """Posts the message to twitter including a timestamp, along with handling rate limits
     """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    full_tweet = f"{message} (Posted at: {timestamp})"
+
     try:
-        api.update_status(message)
-        typer.secho(f"Tweet has been posted: {message}", fg=typer.colors.GREEN)
+        tweet = client.create_tweet(text=full_tweet)
+        typer.secho(f"Tweet has been posted: {full_tweet}", fg=typer.colors.GREEN)
     except tweepy.TweepyException as e:
-        if e.api_code == 187:
-            typer.secho("This is a duplicate, looking for another message...", err=True, fg=typer.colors.YELLOW)
-        elif e.api_code == 185:
-            typer.secho("The rate limit has exceeded. Wait for 15 minutes.", err=True, fg=typer.colors.RED)
-        else:
             typer.secho(f"An error occurred: {e}", err=True, fg=typer.colors.RED)
 
 def run_bot(interval=3600):
@@ -68,6 +62,7 @@ def run_bot(interval=3600):
             post_tweet(message)
         else:
             typer.secho("There are no tweets available to post.", err=True, fg=typer.colors.RED)
+        typer.secho(f"Waiting for {interval} seconds before next tweet", fg=typer.colors.BLUE)
         time.sleep(interval)
 
 #functions listed down below are command functions
@@ -110,7 +105,7 @@ def lst():
 def run():
     """runs the bot to tweet messages at a given interval
     """
-    typer.secho("The bot is running...", fg=typer.colors.BLUE)
+    typer.secho("The bot is running... Press Ctrl+C to stop.", fg=typer.colors.BLUE)
     run_bot()
 
 if __name__ == "__main__":
