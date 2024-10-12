@@ -69,25 +69,6 @@ def run_bot(interval=3600):
     except KeyboardInterrupt:
         typer.secho("The bot has stopped running", fg=typer.colors.RED)
     
-
-#test rate limit
-@app.command()
-def test():
-    """test function to hit the rate limit
-    """
-    count = 0
-    start_time = time.time()
-    try:
-        while True:
-            message = f"Test tweet {count}"
-            post_tweet(message)
-            count += 1
-            time.sleep(10)
-    except tweepy.errors.TooManyRequests as e:
-        elapsed_time = time.time() - start_time
-        typer.secho(f"Rate limit hit after {count} tweets in {elapsed_time:.2f} seconds", fg=typer.colors.YELLOW)
-        typer.secho(f"Error message: {str(e)}", fg=typer.colors.RED)
-
 def add (message: str):
     """add tweets to the list
 
