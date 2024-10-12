@@ -1,1 +1,1 @@
-a twitter both using the tweepy package. a standard CLI application
+a python-based twitter bot that automatically posts tweets at regular intervals
