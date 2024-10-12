@@ -108,6 +108,30 @@ def run():
     typer.secho("The bot is running... Press Ctrl+C to stop.", fg=typer.colors.BLUE)
     run_bot()
 
+#run the main program
+@app.command()
+def twitter():
+    """this is the main program that asks the user for command prompts
+    """
+    while True:
+        command = typer.prompt ("Enter a command: (add/rmv/lst/run/quit)")
+        
+        if command == 'add':
+            message = typer.prompt ("Enter a tweet: ")
+            add(message)
+        elif command == 'rmv':
+            index = typer.prompt ("Enter the index of the tweet to remove: ", type=int)
+            rmv(index)
+        elif command == 'lst':
+            lst()
+        elif command == 'run':
+            run()
+        elif command == 'quit':
+            typer.secho("Exiting the bot.", fg=typer.colors.YELLOW)
+            break
+        else:
+            typer.secho("Invalid command. Please try again.", err=True, fg=typer.colors.RED)
+        
 if __name__ == "__main__":
     app()
 
