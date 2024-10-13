@@ -62,8 +62,12 @@ def run_bot(interval=3600):
             time.sleep(interval)
     except KeyboardInterrupt:
         typer.secho("The bot has stopped running", fg=typer.colors.RED)
+<<<<<<< HEAD
 
 @app.command()    
+=======
+    
+>>>>>>> 7937d2987e48c4841d35a8ea05b2e7adf82ad1cc
 def add (message: str):
     """add tweets to the list
 

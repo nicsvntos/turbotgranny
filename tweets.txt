@@ -1,4 +1,3 @@
-this is day 2 of testing the bot with new implementations
-i can't wait for the next episode of dandadan!
+this is day 4 of testing my program
 finished re-reading dandadan today
-i added some new stuff to my program
+changed some lines in my code
