@@ -1,3 +1,4 @@
-this is day 4 of testing my program
 finished re-reading dandadan today
-changed some lines in my code
+removed some lines in my code
+im still trying to figure out rate limits!
+this bot tweets every 30 minutes now
