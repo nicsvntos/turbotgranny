@@ -1,10 +1,11 @@
 import tweepy #twitter library
-import tweepy.errors
 import typer #CLI
 from dotenv import load_dotenv #for loading the .env file
 import os, random, time, datetime
 
 load_dotenv()
+
+app = typer.Typer()
 
 #twitter api credentials
 API_KEY = os.getenv('API_KEY')
@@ -22,26 +23,20 @@ api = tweepy.API(auth)
 
 app = typer.Typer()
 
-def load_message(filename='tweets.txt'):
-    """Loads the messages from the file"""
-    try:
-        with open (filename, 'r') as f:
-            return [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        typer.secho(f"Error {filename} not found.", err=True, fg=typer.colors.RED)
-        return []
-    
-
-def save_message(messages, filename='tweets.txt'):
-    """Saves the messages to the file
-    Args:
-        filename (str, optional)
+def file_operation (filename = 'tweets.txt', mode = 'r', messages=None):
+    """Performs file operations such as reading and writing messages to a file.
     """
-    with open (filename, 'w') as f:
-        for message in messages:
-            f.write(f"{message}\n")
-        typer.secho(f"Message saved to {filename} successfully", fg=typer.colors.GREEN)
-
+    try:
+        with open (filename, mode) as f:
+            if mode == 'r':
+                return [line.strip() for line in f if line.strip()]
+            elif mode == 'w':
+                for message in messages:
+                    f.write(f"{message}\n")
+                typer.secho(f"Message has been saved to {filename} successfully", fg=typer.colors.GREEN)
+    except FileNotFoundError:
+        typer.secho (f"Error: {filename} not found", err=True, fg=typer.colors.RED)
+        return[]
 
 def post_tweet(message):
     """Posts the message to twitter including a timestamp, along with handling rate limits
@@ -58,90 +53,71 @@ def post_tweet(message):
 def run_bot(interval=3600):
     try:
         while True:
-            messages = load_message()
+            messages = file_operation()
             if messages:
-                message = random.choice(messages)
-                post_tweet(message)
+                post_tweet(random.choice(messages))
             else:
                 typer.secho("There are no tweets available to post.", err=True, fg=typer.colors.RED)
             typer.secho(f"Waiting for {interval} seconds before next tweet", fg=typer.colors.BLUE)
             time.sleep(interval)
     except KeyboardInterrupt:
         typer.secho("The bot has stopped running", fg=typer.colors.RED)
-    
 
-#test rate limit
-@app.command()
-def test():
-    """test function to hit the rate limit
-    """
-    count = 0
-    start_time = time.time()
-    try:
-        while True:
-            message = f"Test tweet {count}"
-            post_tweet(message)
-            count += 1
-            time.sleep(10)
-    except tweepy.errors.TooManyRequests as e:
-        elapsed_time = time.time() - start_time
-        typer.secho(f"Rate limit hit after {count} tweets in {elapsed_time:.2f} seconds", fg=typer.colors.YELLOW)
-        typer.secho(f"Error message: {str(e)}", fg=typer.colors.RED)
-
+@app.command()    
 def add (message: str):
     """add tweets to the list
 
     Args:
         message (str)
     """
-    messages = load_message()
+    messages = file_operation()
     messages.append(message)
-    save_message(messages)
+    file_operation(mode='w', messages=messages)
     typer.secho(f"Message added: {message}", fg=typer.colors.GREEN)
 
-
+@app.command()
 def rmv(index: int):
     """remove tweets from the list based on their index number
 
     Args:
         index (int)
     """
-    messages = load_message()
+    messages = file_operation()
     if 0 <= index < len(messages):
         removed_message = messages.pop(index)
-        save_message(messages)
+        file_operation(mode='w', messages=messages)
         typer.secho(f"Message removed: {removed_message}", fg=typer.colors.GREEN)
     else:
         typer.secho("The index is invalid, no message was removed", err=True, fg=typer.colors.RED)
 
-
+@app.command()
 def lst():
     """list messages and their indices
     """
-    messages = load_message()
-    for i, message in enumerate(messages):
-        typer.secho(f"{i}: {message}")
+    for i, message in enumerate(file_operation()):
+        typer.secho(f"{i}: {message}", fg=typer.colors.BLUE)
 
+@app.command()
 def edit(index: int, new_message: str):
     """edit messages based on their index number
     """
-    messages = load_message()
+    messages = file_operation()
     if 0 <= index < len(messages):
         old_message = messages[index]
         messages[index] = new_message
-        save_message(messages)
+        file_operation(mode='w', messages=messages)
         typer.secho(f"Message edited: {old_message} -> {new_message}", fg=typer.colors.GREEN)
     else:
         typer.secho("The index is invalid, no message was edited", err=True, fg=typer.colors.RED)
 
-
+@app.command()
 def run():
     """runs the bot to tweet messages at a given interval
     """
     typer.secho("The bot is running... Press Ctrl+C to stop.", fg=typer.colors.BLUE)
     run_bot()
 
-
+@app.command()
 def main():
     """this is the main program that asks the user for command prompts
     """
@@ -161,11 +137,9 @@ def main():
         elif command == 'run':
             run()
         elif command == 'edit':
-            index = typer.prompt ("Enter the index of the tweet to edit:", type=int)
+            index = typer.prompt ("Enter the index of the tweet to edit", type=int)
             new_message = typer.prompt ("Enter the new tweet")
             edit(index, new_message)
-        elif command == 'test':
-            test()
         elif command == 'quit':
             typer.secho("Exiting the bot.", fg=typer.colors.YELLOW)
             break
@@ -173,6 +147,6 @@ def main():
             typer.secho("Invalid command. Please try again.", err=True, fg=typer.colors.RED)
 
 if __name__ == "__main__":
-    main()
+    app()
 
 
