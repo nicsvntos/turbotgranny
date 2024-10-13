@@ -1,6 +1,7 @@
 import tweepy #twitter library
 import typer #CLI
 from dotenv import load_dotenv #for loading the .env file
+from requests.exceptions import ConnectionError #for handling connection errors
 import os, random, time, datetime
 
 load_dotenv()
@@ -8,23 +9,21 @@ load_dotenv()
 app = typer.Typer()
 
 #twitter api credentials
-API_KEY = os.getenv('API_KEY')
-API_SECRET = os.getenv('API_SECRET')
-ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
-ACCESS_SECRET = os.getenv('ACCESS_SECRET')
-BEARER_TOKEN = os.getenv('BEARER_TOKEN')
+def twitter_credentials():
+    return tweepy.Client(
+        bearer_token=os.getenv('BEARER_TOKEN'),
+        consumer_key=os.getenv('API_KEY'),
+        consumer_secret=os.getenv('API_SECRET'),
+        access_token=os.getenv('ACCESS_TOKEN'),
+        access_token_secret=os.getenv('ACCESS_SECRET')
+    )
 
-client = tweepy.Client(BEARER_TOKEN, API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET)
-
-#authenticate to twitter
-auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
-auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
-api = tweepy.API(auth)
+client = twitter_credentials()
 
 app = typer.Typer()
 
 def file_operation (filename = 'tweets.txt', mode = 'r', messages=None):
-    """Performs file operations such as reading and writing messages to a file.
+    """Loading and Saving messages to a file by performing read and write operations
     """
     try:
         with open (filename, mode) as f:
@@ -38,36 +37,50 @@ def file_operation (filename = 'tweets.txt', mode = 'r', messages=None):
         typer.secho (f"Error: {filename} not found", err=True, fg=typer.colors.RED)
         return[]
 
-def post_tweet(message):
-    """Posts the message to twitter including a timestamp, along with handling rate limits
-    """
+def post_tweet(message, max_retries=3):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     full_tweet = f"{message} (Posted at: {timestamp})"
-
-    try:
-        tweet = client.create_tweet(text=full_tweet)
-        typer.secho(f"Tweet has been posted: {full_tweet}", fg=typer.colors.GREEN)
-    except tweepy.TweepyException as e:
-            typer.secho(f"An error occurred: {e}", err=True, fg=typer.colors.RED)
+    
+    for attempt in range(max_retries):
+        try:
+            global client
+            client = twitter_credentials()  # Reconnect before each attempt
+            client.create_tweet(text=full_tweet)
+            typer.secho(f"Tweet has been posted: {full_tweet}", fg=typer.colors.GREEN)
+            return
+        except (tweepy.TweepyException, ConnectionError) as e:
+            if attempt < max_retries - 1:
+                typer.secho(f"Error occurred: {e}. Retrying in 5 seconds...", fg=typer.colors.YELLOW)
+                time.sleep(5)
+            else:
+                typer.secho(f"Failed to post tweet after {max_retries} attempts: {e}", err=True, fg=typer.colors.RED)
 
 def run_bot(interval=3600):
     try:
         while True:
             messages = file_operation()
             if messages:
-                post_tweet(random.choice(messages))
+                message = random.choice(messages)
+                post_tweet(message)
             else:
-                typer.secho("There are no tweets available to post.", err=True, fg=typer.colors.RED)
-            typer.secho(f"Waiting for {interval} seconds before next tweet", fg=typer.colors.BLUE)
-            time.sleep(interval)
+                typer.secho("No tweets available to post.", err=True, fg=typer.colors.RED)
+            
+            # Wait for the interval, but periodically check if we're still connected
+            start_time = time.time()
+            while time.time() - start_time < interval:
+                time.sleep(min(300, interval))  # Check every 5 minutes or at the end of the interval
+                try:
+                    global client
+                    client = twitter_credentials()  # Attempt to reconnect
+                    client.get_me()  # Simple API call to check connection
+                except Exception as e:
+                    typer.secho(f"Connection check failed: {e}. Will retry on next tweet.", fg=typer.colors.YELLOW)
+                
+            typer.secho(f"Waiting completed. Preparing to post next tweet.", fg=typer.colors.BLUE)
     except KeyboardInterrupt:
-        typer.secho("The bot has stopped running", fg=typer.colors.RED)
-<<<<<<< HEAD
+        typer.secho("The bot has stopped running.", fg=typer.colors.RED)
 
 @app.command()    
-=======
-    
->>>>>>> 7937d2987e48c4841d35a8ea05b2e7adf82ad1cc
 def add (message: str):
     """add tweets to the list
 
@@ -125,7 +138,7 @@ def run():
 def main():
     """this is the main program that asks the user for command prompts
     """
-    typer.secho("Welcome to the Twitter Bot!", fg=typer.colors.GREEN)
+    typer.secho("Welcome to the Twitter Bot!", fg=typer.colors.BLUE)
     typer.secho("Available commands: add, rmv, lst, edit, run, quit", fg=typer.colors.BLUE)
     while True:
         command = typer.prompt ("Enter a command")
