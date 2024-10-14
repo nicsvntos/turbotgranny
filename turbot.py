@@ -1,11 +1,8 @@
-import tweepy #twitter library
-import typer #CLI
-from dotenv import load_dotenv #for loading the .env file
-from requests.exceptions import ConnectionError #for handling connection errors
-import os, random, time, datetime
+import tweepy, typer, os, random, time, datetime
+from dotenv import load_dotenv
+from requests.exceptions import ConnectionError
 
 load_dotenv()
-
 app = typer.Typer()
 
 #twitter api credentials
@@ -20,11 +17,8 @@ def twitter_credentials():
 
 client = twitter_credentials()
 
-app = typer.Typer()
-
 def file_operation (filename = 'tweets.txt', mode = 'r', messages=None):
-    """Loading and Saving messages to a file by performing read and write operations
-    """
+    """Loading and Saving messages to a file by performing read and write operations"""
     try:
         with open (filename, mode) as f:
             if mode == 'r':
@@ -82,11 +76,7 @@ def run_bot(interval=3600):
 
 @app.command()    
 def add (message: str):
-    """add tweets to the list
-
-    Args:
-        message (str)
-    """
+    """add tweets to the list"""
     messages = file_operation()
     messages.append(message)
     file_operation(mode='w', messages=messages)
@@ -94,11 +84,7 @@ def add (message: str):
 
 @app.command()
 def rmv(index: int):
-    """remove tweets from the list based on their index number
-
-    Args:
-        index (int)
-    """
+    """remove tweets from the list based on their index number"""
     messages = file_operation()
     if 0 <= index < len(messages):
         removed_message = messages.pop(index)
@@ -109,15 +95,13 @@ def rmv(index: int):
 
 @app.command()
 def lst():
-    """list messages and their indices
-    """
+    """list messages and their indices"""
     for i, message in enumerate(file_operation()):
         typer.secho(f"{i}: {message}", fg=typer.colors.BLUE)
 
 @app.command()
 def edit(index: int, new_message: str):
-    """edit messages based on their index number
-    """
+    """edit messages based on their index number"""
     messages = file_operation()
     if 0 <= index < len(messages):
         old_message = messages[index]
@@ -129,19 +113,17 @@ def edit(index: int, new_message: str):
 
 @app.command()
 def run():
-    """runs the bot to tweet messages at a given interval
-    """
+    """runs the bot to tweet messages at a given interval"""
     typer.secho("The bot is running... Press Ctrl+C to stop.", fg=typer.colors.BLUE)
     run_bot()
 
 @app.command()
 def main():
-    """this is the main program that asks the user for command prompts
-    """
+    """this is the main program that asks the user for command prompts"""
     typer.secho("Welcome to the Twitter Bot!", fg=typer.colors.BLUE)
     typer.secho("Available commands: add, rmv, lst, edit, run, quit", fg=typer.colors.BLUE)
     while True:
-        command = typer.prompt ("Enter a command")
+        command = typer.prompt ("Enter a command").lower()
         
         if command == 'add':
             message = typer.prompt ("Enter a tweet")
@@ -165,5 +147,3 @@ def main():
 
 if __name__ == "__main__":
     app()
-
-
