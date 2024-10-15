@@ -1,4 +1,4 @@
 finished re-reading dandadan today
-removed some lines in my code
-im still trying to figure out rate limits!
-this bot tweets every 30 minutes now
+im not sure i get what rate limits are
+episode 3 of dandadan is coming out this thursday
+new chapter of dandadan is already out
