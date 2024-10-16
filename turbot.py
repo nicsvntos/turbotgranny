@@ -1,4 +1,4 @@
-import tweepy, typer, os, random, time, datetime
+import tweepy, typer, os, random, time, datetime, requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,26 +28,41 @@ def file_operation (filename = 'tweets.txt', mode = 'r', messages=None):
                 typer.secho(f"Message has been saved to {filename} successfully", fg=typer.colors.GREEN)
     except FileNotFoundError:
         typer.secho (f"Error: {filename} not found", err=True, fg=typer.colors.RED)
-        return[]
 
-def post_tweet(message, max_retries=3):
+def check_internet():
+    """checking internet connection"""
+    try:
+        requests.get("https://api.twitter.com", timeout=5)
+        return True
+    except requests.RequestException:
+        return False
+    
+def post_tweet(message, max_attempts=3):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     full_tweet = f"{message} (Posted at: {timestamp})"
-    for attempt in range(max_retries):
+    for attempt in range(max_attempts):
+        if not check_internet():
+            typer.secho("No internet connection. Retrying in 30 seconds...", fg=typer.colors.YELLOW)
+            time.sleep(30)
+            if attempt == max_attempts - 1:
+                typer.secho(f"Failed to connect to the internet after {max_attempts} attempts", fg=typer.colors.RED)
+            continue
         try:
             global client
-            client = twitter_credentials()  # Reconnect before each attempt
+            client = twitter_credentials()  # Attempt to reconnect
             client.create_tweet(text=full_tweet)
             typer.secho(f"Tweet has been posted: {full_tweet}", fg=typer.colors.GREEN)
             return
         except (tweepy.TweepyException) as e:
-            if attempt < max_retries - 1:
+            if attempt < max_attempts - 1:
                 typer.secho(f"Error occurred: {e}. Retrying in 5 seconds...", fg=typer.colors.YELLOW)
                 time.sleep(5)
             else:
-                typer.secho(f"Failed to post tweet after {max_retries} attempts: {e}", err=True, fg=typer.colors.RED)
+                typer.secho(f"Failed to post tweet after {max_attempts} attempts: {e}", err=True, fg=typer.colors.RED)
+    typer.secho ("Failed to post tweet due to errors/connection issues. Press Ctrl+C to exit.", err=True, fg=typer.colors.RED)
 
-def run_bot(interval=60*60):
+def run_bot(interval=3600):
+    """handling rate limits and tweet selection"""
     try:
         while True:
             messages = file_operation()
@@ -112,12 +127,10 @@ def edit(index: int, new_message: str):
 
 @app.command()
 def run():
-    """Run the bot"""
-    typer.secho("Bot running... Press Ctrl+C to stop.", fg=typer.colors.BLUE)
-    try:
-        run_bot()
-    except KeyboardInterrupt:
-        typer.secho("Bot stopped.", fg=typer.colors.RED)
+    """run the bot to post tweets"""
+    typer.secho("Bot running... Press Ctrl+C to stop/exit.", fg=typer.colors.BLUE)
+    run_bot()
+
 
 @app.command()
 def main():
